@@ -45,6 +45,16 @@ to create and destroy clusters while you experiment. Other local options exist
 (minikube, kind, Docker Desktop's built-in Kubernetes), but k3d gives you actual
 K3s with almost no overhead.
 
+## How the concepts fit together
+
+This is the map you build across the path. A Deployment manages a set of Pods; a
+Service gives them one stable address and load-balances across them; an Ingress
+routes outside traffic to a Service. ConfigMaps and Secrets feed configuration
+into Pods, and a PersistentVolumeClaim gives a database Pod storage that
+survives restarts.
+
+![Diagram of how Kubernetes concepts relate: a cluster containing a control plane, a namespace with Ingress, Service, Deployment, Pods, ConfigMap/Secret, PVC and a Postgres Pod, and the worker nodes the Pods are scheduled onto](concepts-diagram.svg)
+
 ## The modules
 
 | Module | What you learn |
