@@ -106,3 +106,40 @@ Stop a noisy CronJob when you are done experimenting:
 ```sh
 kubectl delete cronjob heartbeat
 ```
+
+## When to use each
+
+A CronJob is not an alternative to a Job, it is a Job factory. The `jobTemplate`
+in `cronjob.yaml` holds the same Pod spec as `job.yaml`, and every minute the
+CronJob controller stamps out a new Job from it. That is what you watched happen
+with `kubectl get jobs -w`. So the question is not Job versus CronJob, it is who
+decides when the work runs.
+
+Use a Job when a person or a pipeline decides. The `migrate` Job above runs when
+you ship a schema change, not at a fixed hour. The same goes for a one-off
+backfill, a batch import someone kicks off, or seeding a fresh environment.
+
+Use a CronJob when the clock decides and nothing outside triggers the work: a
+nightly cleanup of expired rows, an hourly report, a `pg_dump` backup, purging
+old sessions.
+
+| Situation | Use |
+|---|---|
+| Runs when you deploy | Job |
+| Runs when someone asks for it | Job |
+| Runs at 2am every night | CronJob |
+| Runs continuously | Deployment |
+| Runs more often than once a minute | Deployment with a sleep loop |
+
+Two cases look ambiguous but are not. If your CI already schedules the work and
+calls into the cluster, that is a Job per run; a CronJob there would give you two
+schedulers disagreeing about when things happen. And if you want a nightly backup
+that you can also force by hand, keep the CronJob and clone it rather than
+writing a second manifest:
+
+```sh
+kubectl create job --from=cronjob/heartbeat heartbeat-manual
+```
+
+That copies the `jobTemplate` into a one-off Job, so one definition serves both
+trigger paths.
