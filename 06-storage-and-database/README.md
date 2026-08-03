@@ -203,11 +203,65 @@ The two also want opposite exposure. `hello` is published to the outside world
 through your Ingress. `postgres` has to stay reachable only from inside the
 cluster. One Service means one policy for both.
 
-The related question is whether they should share a Pod instead, as two
-containers side by side. No, and for a sharper reason: containers in a Pod scale
-as a unit. `replicas: 2` would give you two Go apps and two separate Postgres
-instances with two separate volumes, and a request would hit one database or the
-other at random. Stateful things get their own controller so their lifecycle can
-be separated from the stateless things that talk to them.
+One Service per role, and roles find each other by DNS name. The next question
+takes this one level down: why not one Pod either?
 
-One Service per role, and roles find each other by DNS name.
+## What goes in one Pod and what gets its own?
+
+Things share a Pod only when they cannot do their job apart. Everything else
+gets its own Pod, which in practice means almost everything does.
+
+Containers in a Pod are welded together in four ways: they scale together, they
+land on the same node together, they restart and die together, and they share
+one IP. That gives you four questions to ask about any two components:
+
+1. Do they scale together, always, exactly? If you could ever want 5 of one and
+   2 of the other, separate Pods.
+2. Can they be deployed independently? Same Pod means every deploy of one
+   restarts the other.
+3. Do they have different lifecycles? A database that must survive an app
+   redeploy cannot live in the app's Pod.
+4. Would one crashing justify restarting the other?
+
+Any "no" means separate Pods. This module is the sharpest example: put Postgres
+in the app's Pod and `replicas: 2` gives you two Go apps and two disconnected
+databases with two separate volumes, each request hitting one or the other at
+random.
+
+Take a bigger business to see the pattern: an API service, an orders service, a
+payments service, Postgres, Redis, and Kafka.
+
+| Workload | Packaging | Which question fails if combined |
+|---|---|---|
+| API service | Own Deployment | Scales on HTTP traffic (1) |
+| Orders service | Own Deployment | Ships on its own schedule (2) |
+| Payments service | Own Deployment | Same (2) |
+| Postgres | Own StatefulSet | Must outlive app deploys (3) |
+| Redis | Own StatefulSet | Different lifecycle than any app (3) |
+| Kafka brokers | Own StatefulSet, one Pod per broker | Individually addressable, upgraded one at a time (1, 3) |
+
+One Pod template per thing that scales as a unit, and the Pods find each other
+through Services by DNS name. The architecture diagram and the list of
+Deployments and StatefulSets come out nearly one-to-one.
+
+Kafka stress-tests the rule from both sides. Three brokers are three Pods from
+one StatefulSet, not three containers in one Pod: they must land on different
+nodes to survive a node failure, and clients address a specific broker, which is
+why Kafka uses a headless Service just like Postgres here. And its coordination
+layer (Zookeeper, or KRaft controllers) is a separate StatefulSet even though
+Kafka cannot run without it, because you run 3 of those and maybe 9 brokers, so
+question 1 fails.
+
+So when do containers share a Pod? When the second container is per-instance
+glue for the first: a log shipper tailing the app's files from a shared volume,
+a service-mesh proxy that must share the app's IP to intercept its traffic, or
+an init container that waits for the database before the app starts. Ten app
+replicas need exactly ten log shippers, one glued to each. Scaling is inherently
+1:1, so all four questions pass. The smell test: if the helper could conceivably
+serve two replicas of the main container, it does not belong in the Pod.
+
+If you come from docker-compose, the trap is mapping one compose file to one
+Pod. The right mapping is one compose service to one Deployment or StatefulSet.
+A Pod is not the grouping mechanism; namespaces, labels, and Helm charts are
+(modules 11 and 12). Pods are the scaling unit, and putting two things in one
+Pod declares they scale, ship, and die together forever.
