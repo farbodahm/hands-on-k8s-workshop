@@ -73,6 +73,7 @@ survives restarts.
 | 11 | Package the app as a Helm chart |
 | 12 | Isolate work with Namespaces and control access with RBAC |
 | 13 | Tear the cluster down and plan what to study next |
+| 14 | Extend Kubernetes with CRDs and operators |
 
 ## How to work through a module
 

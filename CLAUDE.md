@@ -31,7 +31,7 @@ Each numbered directory is one module with two files:
 - `task.md` — the exercise: what to build, "expected outcome + how to check"
   with runnable verification commands, and hints.
 
-Modules 00–13 run in order. See the root `README.md` for the full table.
+Modules 00–14 run in order. See the root `README.md` for the full table.
 
 ## How to help in a future session
 
@@ -48,5 +48,5 @@ Modules 00–13 run in order. See the root `README.md` for the full table.
 
 ## Status
 
-The full path (modules 00–13) is drafted. No code has been written or cluster
+The full path (modules 00–14) is drafted. No code has been written or cluster
 created yet; that is the owner's work as they progress through the modules.

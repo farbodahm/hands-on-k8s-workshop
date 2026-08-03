@@ -51,8 +51,9 @@ A few directions, roughly in order of usefulness for most people:
   clusters in practice.
 - **Networking depth.** Study `NetworkPolicy` to restrict Pod-to-Pod traffic, and
   read how the cluster DNS and Service proxy actually route packets.
-- **Stateful workloads for real.** Run a multi-replica database with an operator,
-  and learn how backups and failover work under a StatefulSet.
+- **Stateful workloads for real.** Run a multi-replica database with an operator
+  (module 14 does exactly this), and learn how backups and failover work under a
+  StatefulSet.
 - **Observability stack.** Install Prometheus for metrics and Grafana for
   dashboards, and add structured logging aggregation. `kubectl top` is the floor,
   not the ceiling.
